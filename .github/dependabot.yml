@@ -1,0 +1,40 @@
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# In a multi-module Go workspace, each go.mod needs its own Dependabot
+# entry — there is no single "scan everything" mode for gomod.
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/services/app"
+    schedule:
+      interval: "weekly"
+      time: "02:00"
+    open-pull-requests-limit: 10
+    groups:
+      go-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "gomod"
+    directory: "/libs/shared"
+    schedule:
+      interval: "weekly"
+      time: "02:00"
+    open-pull-requests-limit: 10
+    groups:
+      go-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"
+    directory: "/deploy/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10

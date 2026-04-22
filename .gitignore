@@ -1,0 +1,45 @@
+# Binaries and build output
+/dist/
+/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Coverage and profiling
+**/coverage.out
+**/coverage.html
+*.prof
+*.cpu
+*.mem
+*.profraw
+
+# Per-developer go.work overrides (commit go.work itself, not the sum)
+go.work.sum
+
+# Editors / IDEs
+.vscode/
+.cursor/
+.idea/
+*.swp
+*~
+
+# OS
+**/.DS_Store
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# GoReleaser artifacts
+.artifacts/
+
+# mise local overrides
+.mise.local.toml

@@ -1,0 +1,30 @@
+.git
+.github
+.vscode
+.idea
+.cursor
+
+# Build output
+dist/
+bin/
+*.exe
+
+# Coverage / profiling
+**/coverage.out
+**/coverage.html
+*.prof
+*.out
+
+# Editor / OS
+*.swp
+**/.DS_Store
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Docs (kept out of build context to speed up layer)
+docs/
+*.md
+!README.md

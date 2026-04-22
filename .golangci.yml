@@ -1,0 +1,75 @@
+# golangci-lint v2 — https://golangci-lint.run
+# Run `golangci-lint run` from inside any module dir, or `task lint`
+# from the workspace root to lint every module.
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - dupl
+    - errname
+    - errorlint
+    - exhaustive
+    - gocritic
+    - gocyclo
+    - goprintffuncname
+    - gosec
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
+    - unconvert
+    - unparam
+    - wastedassign
+    - whitespace
+
+  settings:
+    gocyclo:
+      min-complexity: 15
+    revive:
+      rules:
+        - name: var-naming
+        - name: exported
+          disabled: false
+        - name: unused-parameter
+          disabled: true
+    gosec:
+      excludes:
+        - G104 # covered by errcheck
+
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - dupl
+          - gosec
+          - gocyclo
+          - errcheck
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/itscheems/golang-template
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

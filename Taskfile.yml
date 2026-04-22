@@ -1,0 +1,97 @@
+# https://taskfile.dev — Go-native task runner (the Go analogue of `just`).
+# Run `task --list` to see available recipes.
+#
+# This Taskfile is workspace-aware: most recipes iterate over every
+# Go module listed in go.work, so adding a new module under services/
+# or libs/ requires no edits here.
+version: "3"
+
+vars:
+  # Modules covered by lint / test / vuln. Keep this in sync with go.work.
+  MODULES: services/app libs/shared
+  # The deployable service whose binary `task build` produces.
+  SERVICE: app
+  BUILD_DIR: dist
+  LDFLAGS: >-
+    -s -w
+    -X github.com/itscheems/golang-template/services/{{.SERVICE}}/internal/version.Version={{.VERSION | default "dev"}}
+    -X github.com/itscheems/golang-template/services/{{.SERVICE}}/internal/version.Commit={{.COMMIT | default "none"}}
+    -X github.com/itscheems/golang-template/services/{{.SERVICE}}/internal/version.Date={{.DATE | default "unknown"}}
+
+env:
+  CGO_ENABLED: "0"
+
+tasks:
+  default:
+    desc: List available tasks.
+    cmds:
+      - task --list
+
+  sync:
+    desc: Sync go.work with each module's go.sum.
+    cmds:
+      - go work sync
+
+  tidy:
+    desc: Run `go mod tidy` in every module.
+    cmds:
+      - for m in {{.MODULES}}; do echo "==> tidy $m"; (cd "$m" && go mod tidy); done
+
+  fmt:
+    desc: Format the codebase (gofumpt + goimports + license headers).
+    cmds:
+      - gofumpt -w .
+      - goimports -w -local github.com/itscheems/golang-template .
+      - hawkeye format
+
+  lint:
+    aliases: [l]
+    desc: Run static analysis (golangci-lint + license header check).
+    cmds:
+      - hawkeye check
+      - for m in {{.MODULES}}; do echo "==> lint $m"; (cd "$m" && go vet ./... && golangci-lint run); done
+
+  test:
+    aliases: [t]
+    desc: Run unit tests with race detector and per-module coverage.
+    env:
+      CGO_ENABLED: "1"  # race detector needs cgo
+    cmds:
+      - for m in {{.MODULES}}; do echo "==> test $m"; (cd "$m" && go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...); done
+
+  build:
+    desc: 'Build a service binary. Override target with: task build SERVICE=worker'
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - cd services/{{.SERVICE}} && go build -trimpath -ldflags '{{.LDFLAGS}}' -o ../../{{.BUILD_DIR}}/{{.SERVICE}} ./cmd/{{.SERVICE}}
+
+  run:
+    desc: 'Run a service. Override with: task run SERVICE=worker'
+    cmds:
+      - cd services/{{.SERVICE}} && go run ./cmd/{{.SERVICE}}
+
+  audit:
+    desc: govulncheck + gosec across every module.
+    cmds:
+      - for m in {{.MODULES}}; do echo "==> govulncheck $m"; (cd "$m" && govulncheck ./...); done
+      - for m in {{.MODULES}}; do echo "==> gosec $m";       (cd "$m" && gosec -quiet ./...); done
+
+  bench:
+    desc: Run benchmarks in every module.
+    cmds:
+      - for m in {{.MODULES}}; do echo "==> bench $m"; (cd "$m" && go test -run=^$ -bench=. -benchmem ./...); done
+
+  clean:
+    desc: Remove build & coverage artifacts.
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+      - find . -name coverage.out -delete
+
+  release-snapshot:
+    desc: Dry-run a GoReleaser build locally.
+    cmds:
+      - goreleaser release --snapshot --clean --skip=publish
+
+  ci:
+    desc: Run everything CI runs, locally.
+    deps: [lint, test, build]

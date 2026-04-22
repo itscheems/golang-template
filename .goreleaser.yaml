@@ -1,0 +1,82 @@
+# GoReleaser v2 — https://goreleaser.com
+#
+# This monorepo template ships a single deployable (services/app). To add
+# more, append a `builds:` entry per service (with its own `dir:` and
+# `main:`) and an `archives:` entry, or split releases by tag prefix
+# using GoReleaser's `monorepo:` mode (https://goreleaser.com/customization/monorepo/).
+version: 2
+
+project_name: golang-template
+
+before:
+  hooks:
+    - sh -c 'cd services/app && go mod tidy'
+
+builds:
+  - id: app
+    dir: services/app           # cd into this module before building
+    main: ./cmd/app             # main package, relative to `dir`
+    binary: app
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/itscheems/golang-template/services/app/internal/version.Version={{.Version}}
+      - -X github.com/itscheems/golang-template/services/app/internal/version.Commit={{.Commit}}
+      - -X github.com/itscheems/golang-template/services/app/internal/version.Date={{.Date}}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: default
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+sboms:
+  - artifacts: archive
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: Bug Fixes
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: Others
+      order: 999
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore\\(deps\\):"
+
+release:
+  draft: false
+  prerelease: auto
+  mode: replace

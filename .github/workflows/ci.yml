@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.26.2"
+  # Workspace modules — keep in sync with go.work.
+  MODULES: "services/app libs/shared"
+
+jobs:
+  check:
+    name: Lint & License
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            services/app/go.sum
+            libs/shared/go.sum
+
+      - name: Check license headers
+        uses: korandoru/hawkeye@v6
+        with:
+          config: licenserc.toml
+
+      - name: go vet (per module)
+        shell: bash
+        run: |
+          for m in $MODULES; do
+            echo "==> vet $m"
+            (cd "$m" && go vet ./...)
+          done
+
+      - name: golangci-lint — services/app
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.11.4
+          working-directory: services/app
+          args: --timeout=5m
+
+      - name: golangci-lint — libs/shared
+        uses: golangci/golangci-lint-action@v7
+        with:
+          version: v2.11.4
+          working-directory: libs/shared
+          args: --timeout=5m
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            services/app/go.sum
+            libs/shared/go.sum
+
+      - name: Test with coverage (per module)
+        shell: bash
+        env:
+          CGO_ENABLED: "1"  # race detector needs cgo
+        run: |
+          for m in $MODULES; do
+            echo "==> test $m"
+            (cd "$m" && go test -race -count=1 -coverprofile=coverage.out -covermode=atomic ./...)
+          done
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: services/app/coverage.out,libs/shared/coverage.out
+          fail_ci_if_error: false
+        continue-on-error: true
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            services/app/go.sum
+            libs/shared/go.sum
+      - name: Build services/app
+        run: |
+          cd services/app
+          go build -trimpath -ldflags "-s -w" -o ../../dist/app ./cmd/app
+
+  vuln:
+    name: govulncheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: |
+            services/app/go.sum
+            libs/shared/go.sum
+      - name: govulncheck (per module)
+        shell: bash
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          for m in $MODULES; do
+            echo "==> vuln $m"
+            (cd "$m" && govulncheck ./...)
+          done
