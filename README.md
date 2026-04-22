@@ -174,3 +174,17 @@ For per-service release tags (e.g. `app/v0.1.0`, `worker/v0.2.0`), enable [GoRel
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+
+## Related Templates
+
+Part of a small family of project templates by [@itscheems](https://github.com/itscheems). Pick the one matching your project shape:
+
+|          | Single-package / single-module    | Multi-package / multi-module monorepo            |
+| -------- | --------------------------------- | ------------------------------------------------ |
+| **Rust** | [`simple-rust-template`][srt]     | [`rust-template`][rt] — Cargo workspace          |
+| **Go**   | [`simple-golang-template`][sgt]   | [`golang-template`][gt] — `go.work` multi-module |
+
+[srt]: https://github.com/itscheems/simple-rust-template
+[rt]:  https://github.com/itscheems/rust-template
+[sgt]: https://github.com/itscheems/simple-golang-template
+[gt]:  https://github.com/itscheems/golang-template
