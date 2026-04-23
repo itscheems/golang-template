@@ -43,14 +43,14 @@ jobs:
           done
 
       - name: golangci-lint — services/app
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.11.4
           working-directory: services/app
           args: --timeout=5m
 
       - name: golangci-lint — libs/shared
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.11.4
           working-directory: libs/shared
